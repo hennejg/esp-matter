@@ -111,7 +111,18 @@ bool endpointIdIsValid(EndpointId endpointId)
     return endpointIdMatched;
 }
 
+// Set by the application before esp_matter::start() to select Ethernet driver
+// instead of WiFi when both CONFIG_WIFI_NETWORK_COMMISSIONING_DRIVER and
+// CONFIG_ETHERNET_NETWORK_COMMISSIONING_DRIVER are compiled in.
+static bool s_eth_commissioning = false;
+
 } // namespace
+
+// Called from matter.cpp when Ethernet link is up at startup.
+extern "C" void esp_matter_set_ethernet_commissioning(bool use_eth)
+{
+    s_eth_commissioning = use_eth;
+}
 
 void ESPMatterNetworkCommissioningClusterServerInitCallback(EndpointId endpointId)
 {
@@ -126,13 +137,14 @@ void ESPMatterNetworkCommissioningClusterServerInitCallback(EndpointId endpointI
         }
 #endif
 #ifdef CONFIG_WIFI_NETWORK_COMMISSIONING_DRIVER
-        if (endpointId == CONFIG_WIFI_NETWORK_ENDPOINT_ID) {
+        // Skip WiFi driver when Ethernet was selected at startup.
+        if (!s_eth_commissioning && endpointId == CONFIG_WIFI_NETWORK_ENDPOINT_ID) {
             gServers[index].Create(endpointId, &(DeviceLayer::NetworkCommissioning::ESPWiFiDriver::GetInstance()),
                                    MakeNetworkCommissioningClusterContext());
         }
 #endif
 #ifdef CONFIG_ETHERNET_NETWORK_COMMISSIONING_DRIVER
-        if (endpointId == CONFIG_ETHERNET_NETWORK_ENDPOINT_ID) {
+        if (s_eth_commissioning && endpointId == CONFIG_ETHERNET_NETWORK_ENDPOINT_ID) {
             gServers[index].Create(endpointId, &(DeviceLayer::NetworkCommissioning::ESPEthernetDriver::GetInstance()),
                                    MakeNetworkCommissioningClusterContext());
         }

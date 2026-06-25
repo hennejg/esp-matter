@@ -57,13 +57,18 @@ esp_err_t add(endpoint_t *endpoint, config_t *config)
     cluster::basic_information::create(endpoint, &(config->basic_information), CLUSTER_FLAG_SERVER);
     cluster::general_commissioning::create(endpoint, &(config->general_commissioning), CLUSTER_FLAG_SERVER);
 #ifndef CONFIG_CUSTOM_NETWORK_CONFIG
+    // If the application pre-set network_commissioning.feature_flags before calling
+    // node::create() (e.g. to select Ethernet when ETH link is up), respect that choice.
+    // Otherwise fall back to the compile-time default based on enabled interfaces.
+    if (!config->network_commissioning.feature_flags) {
 #if CHIP_DEVICE_CONFIG_ENABLE_WIFI
-    config->network_commissioning.feature_flags |= cluster::network_commissioning::feature::wi_fi_network_interface::get_id();
+        config->network_commissioning.feature_flags |= cluster::network_commissioning::feature::wi_fi_network_interface::get_id();
 #elif CHIP_DEVICE_CONFIG_ENABLE_THREAD
-    config->network_commissioning.feature_flags |= cluster::network_commissioning::feature::thread_network_interface::get_id();
+        config->network_commissioning.feature_flags |= cluster::network_commissioning::feature::thread_network_interface::get_id();
 #else
-    config->network_commissioning.feature_flags |= cluster::network_commissioning::feature::ethernet_network_interface::get_id();
+        config->network_commissioning.feature_flags |= cluster::network_commissioning::feature::ethernet_network_interface::get_id();
 #endif
+    }
     cluster::network_commissioning::create(endpoint, &(config->network_commissioning), CLUSTER_FLAG_SERVER);
 #endif // CONFIG_CUSTOM_NETWORK_CONFIG
     cluster::general_diagnostics::create(endpoint, &(config->general_diagnostics), CLUSTER_FLAG_SERVER);

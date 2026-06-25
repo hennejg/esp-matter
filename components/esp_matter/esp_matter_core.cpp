@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <esp_check.h>
+#include <esp_heap_caps.h>
 #include <esp_log.h>
 #include <esp_matter.h>
 #include <esp_matter_core.h>
@@ -376,6 +377,9 @@ esp_err_t start(event_callback_t callback, intptr_t callback_arg)
     VerifyOrReturnError((err == ESP_OK || err == ESP_ERR_INVALID_STATE), err, ESP_LOGE(TAG, "Error create default event loop"));
 #if CHIP_DEVICE_CONFIG_ENABLE_WIFI
     VerifyOrReturnError(chip::DeviceLayer::Internal::ESP32Utils::InitWiFiStack() == CHIP_NO_ERROR, ESP_FAIL, ESP_LOGE(TAG, "Error initializing Wi-Fi stack"));
+    ESP_LOGI(TAG, "heap after WiFi init: DMA_free=%u DMA_largest=%u",
+             heap_caps_get_free_size(MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL),
+             heap_caps_get_largest_free_block(MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL));
 #endif // CHIP_DEVICE_CONFIG_ENABLE_WIFI
 #ifdef CONFIG_ESP_MATTER_ENABLE_DATA_MODEL
     esp_matter_ota_requestor_init();
